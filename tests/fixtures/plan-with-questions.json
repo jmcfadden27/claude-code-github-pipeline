@@ -12,11 +12,23 @@
     { "path": "src/tasks/task.ts", "change": "modify" },
     { "path": "src/tasks/task-validator.ts", "change": "modify" },
     { "path": "src/tasks/task-routes.ts", "change": "modify" },
+    { "path": "test/db/migrations.test.ts", "change": "modify" },
+    { "path": "test/task-validator.test.ts", "change": "modify" },
     { "path": "test/tasks.test.ts", "change": "modify" }
   ],
   "acceptanceCriteria": [
     { "criterion": "A task can be created and updated with an optional due date", "check": "API tests create and update tasks with and without dueDate" },
     { "criterion": "GET /tasks lists overdue tasks first", "check": "An API test lists tasks with past, future and no due dates and checks the order" }
+  ],
+  "testPlan": [
+    { "id": "D1", "layer": "Database", "proves": "After migration 0007, tasks have a nullable due_date and existing tasks keep a null due date", "criteria": [1], "replaces": "" },
+    { "id": "U1", "layer": "Unit", "proves": "TaskValidator accepts a missing dueDate and an ISO date, and rejects a date that isn't ISO", "criteria": [1], "replaces": "" },
+    { "id": "A1", "layer": "API", "proves": "POST and PATCH /tasks store and return dueDate, with and without one", "criteria": [1], "replaces": "" },
+    { "id": "A2", "layer": "API", "proves": "GET /tasks with past, future and no due dates lists overdue tasks first", "criteria": [2], "replaces": "'GET /tasks lists tasks newest first'" }
+  ],
+  "skippedLayers": [
+    { "layer": "UI", "reason": "No client code in this change" },
+    { "layer": "Journey", "reason": "No user flow changes without client code" }
   ],
   "risks": [
     "Existing API clients ignore the new field; ordering of GET /tasks changes for everyone"

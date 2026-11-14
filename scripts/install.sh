@@ -43,7 +43,7 @@ Copied ${copied} file(s), skipped ${skipped}.
 Next steps (see docs/setup.md):
   1. Edit pipeline/scripts/run-checks.sh with your build and test commands.
   2. Add your toolchain setup to the marked step in .github/workflows/ai-pipeline.yml.
-  3. Fill in CLAUDE.md with your project's rules.
+  3. Fill in CLAUDE.md with your project's rules and test layers.
   4. Add the CLAUDE_CODE_OAUTH_TOKEN secret.
   5. Repository settings: allow GitHub Actions to create pull requests.
   6. Create the status labels: scripts/create-labels.sh <owner/repo>

@@ -28,7 +28,17 @@ understand it, study the codebase, and return a plan they can approve — or the
    is checked (normally a test). Sharpen wording yourself when the meaning is clear; when a criterion is vague ("works
    well", "is fast") or could mean two things, ask about it. When the request has no criteria, propose them from the
    goal. Don't add criteria the request didn't ask for.
-5. Do not change any file. Do not run commands.
+5. Write the test list (`testPlan`) from the test layers in `CLAUDE.md`. Layers and action rules still marked
+   "Example:" (left from the template) are not the project's: ignore them. When it lists no layers, use one layer,
+   Unit (ID U), for the behaviour that changes. Every layer the change touches gets the tests that prove the change
+   there; every other layer goes in `skippedLayers` with the reason. Each test proves one thing, names its input or
+   state and the outcome, and lists the acceptance criteria it covers (none for a test only the project's rules
+   require, or one that only replaces an old test). IDs are the layer's ID from `CLAUDE.md` (its initial when there
+   is none) and a number, unique in the plan. Find the existing tests the change makes wrong (they expect the old
+   behaviour) and name each in the `replaces` of the test that takes its place. When `CLAUDE.md` has rules every user
+   action must meet, add the tests for each action the change adds or changes. Ask about a layer only when you can't
+   tell whether the change touches it.
+6. Do not change any file. Do not run commands.
 
 ## Output
 
@@ -37,6 +47,9 @@ Return the structured plan:
 - `summary`, `approach`, `steps`, `files`, `risks` as described in the schema.
 - `acceptanceCriteria`: at least one. Approving the plan approves this list; the build is done when every one is
   met, and the review checks the pull request against it.
+- `testPlan` and `skippedLayers`: the test list, approved with the plan. The build writes every test on it and the
+  review checks each one. `testPlan` is empty only for a change with no behaviour (docs only, for example); then
+  `skippedLayers` lists each layer with that reason.
 - `questions`: plain-language questions, each answerable in a sentence. Empty when nothing is unclear.
 - `readyToBuild`: true only when `questions` is empty and the plan can be built as written.
 

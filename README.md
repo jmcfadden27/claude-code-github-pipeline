@@ -18,7 +18,7 @@ review. This pipeline is built around those concerns rather than around the agen
 
 | Concern | How the pipeline handles it |
 | --- | --- |
-| Building the wrong thing | A **plan stage** studies the code and posts a plan with questions on the issue, including acceptance criteria that say how each one is checked (a vague criterion becomes a question). Nothing is built until a person approves it. |
+| Building the wrong thing | A **plan stage** studies the code and posts a plan with questions on the issue, including acceptance criteria that say how each one is checked (a vague criterion becomes a question) and a test list for every test layer the change touches. Nothing is built until a person approves it, and the review checks each listed test. |
 | Losing control | **A person starts every stage** with a comment command (`/plan`, `/approve`, `/fix`, `/review`, `/cancel`) and **merges every change**. The review runs automatically on the pull request the build opens. Agents never approve or merge. |
 | Agents with too much power | **Least privilege per stage**: the planner and reviewers can only read; the builder can edit files and run one script. No agent has git, GitHub or network tools. The build job holds only a read-only token: a separate publish job on a fresh runner pushes, and decides where by itself. |
 | "It works on my machine" | **Trust, but verify**: the builder runs the checks until they pass, then the workflow runs them again itself before it opens a pull request. |
@@ -42,7 +42,7 @@ sequenceDiagram
     GH->>WF: issue_comment
     WF->>WF: Write-access check, gather issue thread
     WF->>AG: /pipeline-plan (read-only tools)
-    AG-->>WF: plan.json (summary, steps, files, risks, questions)
+    AG-->>WF: plan.json (summary, steps, files, acceptance criteria, tests, risks, questions)
     WF->>GH: Plan comment + ai:needs-answers
     You->>GH: Comment "/plan" + answers
     GH->>WF: issue_comment
@@ -76,7 +76,7 @@ sequenceDiagram
 
 | Stage | Started by | Agent can | Workflow does | Result |
 | --- | --- | --- | --- | --- |
-| **Plan** | comment `/plan` on the issue | read the code and the issue thread | posts the plan, labels the issue | plan, acceptance criteria and questions on the issue |
+| **Plan** | comment `/plan` on the issue | read the code and the issue thread | posts the plan, labels the issue | plan, acceptance criteria, test list and questions on the issue |
 | **Build** | comment `/approve` on the issue | edit files, run `run-checks.sh` | re-runs checks, commits, pushes, opens the PR | pull request that closes the issue |
 | **Review** | automatically after a build or fix; comment `/review` to run again | read the diff and the code (×4 lenses) | merges and ranks findings, posts one comment | review comment on the PR |
 | **Fix** | comment `/fix` (+ what to change) on the PR | edit files, run `run-checks.sh` | merges the base first, re-runs checks, pushes to the same PR | new commit on the PR, then a new review |

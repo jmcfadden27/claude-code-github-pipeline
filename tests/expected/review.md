@@ -6,7 +6,7 @@
 | correctness | ❌ changes requested | 1 | 2 |
 | requirements | ✅ approve | 0 | 2 |
 | security | ✅ approve | 0 | 2 |
-| tests | ✅ approve | 2 | 3 |
+| tests | ✅ approve | 2 | 5 |
 
 ### 🔴 Overdue check compares dates in the server's time zone
 

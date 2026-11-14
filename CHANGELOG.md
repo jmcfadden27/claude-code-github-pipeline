@@ -3,6 +3,23 @@
 All notable changes to this project are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [semantic versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+
+- **Test layers:** `CLAUDE.md.example` has a Test layers section where a project lists its kinds of tests, their IDs,
+  what each proves, where it lives and when a change needs it. When updating, add it to your `CLAUDE.md`; without
+  it, plans list unit tests only.
+- **Test list in the plan:** every plan lists the tests the change needs in each layer it touches (with IDs such as
+  `D1` or `J1`, the criteria each covers and any existing test it replaces), and each skipped layer with the reason. It
+  is approved with the plan.
+- **Build report and pull request:** the build writes every listed test and reports each one's file and name (or why
+  it wasn't written); the pull request description shows them under Tests, and a fix's comment lists the tests it
+  wrote, changed, removed or couldn't write. A fix keeps the tests on the approved list: it writes any the review says
+  are missing and never removes or weakens one, even when asked.
+- **Review:** on a pull request built from an approved plan, the tests reviewer checks the list item by item; a
+  missing test, one that can't fail, or an old test left expecting the old behaviour is a high finding.
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

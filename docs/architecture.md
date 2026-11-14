@@ -72,14 +72,18 @@ stateDiagram-v2
 | --- | --- |
 | Trigger | `/plan` on an issue (with your answers or changes after it, when re-planning) |
 | Agent | `/pipeline-plan` · tools `Read, Glob, Grep` · 60 turns · 30-minute job (adjustable) |
-| Output | [`plan.schema.json`](../templates/pipeline/schemas/plan.schema.json): summary, approach, steps, files, acceptanceCriteria, risks, questions, readyToBuild |
+| Output | [`plan.schema.json`](../templates/pipeline/schemas/plan.schema.json): summary, approach, steps, files, acceptanceCriteria, testPlan, skippedLayers, risks, questions, readyToBuild |
 | Effect | a plan comment (marked `<!-- ai-pipeline:plan -->`); status label `ai:needs-answers` or `ai:plan-ready` |
 
 The planner decides technical details itself and asks only about what the requester must decide: behaviour, scope,
 trade-offs and anything destructive. It turns the request's acceptance criteria into checkable ones, each with how it
 is checked, and asks about any that are vague; the builder works to that list and the requirements reviewer checks
-the pull request against it. Re-planning reads the earlier plan and the answers from the thread, so the plan
-converges instead of starting over.
+the pull request against it. It also writes the test list: the tests the change needs in every test layer it
+touches (the layers `CLAUDE.md` lists; unit tests when it lists none), each with an ID such as `D1` or `J1`, what it
+proves, the criteria it covers and any existing test it replaces, plus each skipped layer with the reason. The list is
+approved with the plan; the builder writes every test on it and reports where each one is, and the tests reviewer
+checks them one by one (only on a pull request built from an `/approve`). Re-planning reads the earlier plan and the
+answers from the thread, so the plan converges instead of starting over.
 
 ## Build (`/approve`) and Fix (`/fix`)
 
@@ -87,8 +91,8 @@ converges instead of starting over.
 | --- | --- |
 | Precondition | build: the issue has a plan comment from the pipeline; fix: an open pull request from this repository |
 | Agent | `/pipeline-build` or `/pipeline-fix` · tools `Read, Glob, Grep, Edit, Write, Bash(./pipeline/scripts/run-checks.sh)`, `Bash(diff *)`, `Bash(git diff *)` (to compare copied code) · 200 turns · 120-minute job, 60 minutes per command (adjustable) |
-| Output | [`build-report.schema.json`](../templates/pipeline/schemas/build-report.schema.json): status, summary, changes, checks, followUps, commit (Conventional Commits header) |
-| Fix context | `.pipeline/pr.md`: what you asked after `/fix` (none = the AI review's findings), the description, the conversation and comments on lines of code, from collaborators only; `.pipeline/issue.md`; `.pipeline/diff.patch` |
+| Output | [`build-report.schema.json`](../templates/pipeline/schemas/build-report.schema.json): status, summary, changes, tests (each test on the plan's list: written, updated, removed or not written, with its file and name), checks, followUps, commit (Conventional Commits header) |
+| Fix context | `.pipeline/pr.md`: what you asked after `/fix` (none = the AI review's findings), the description, the conversation and comments on lines of code, from collaborators only; `.pipeline/issue.md`; `.pipeline/diff.patch`. On a pull request built from an approved plan, the tests on its list stay: the fix writes any the review says are missing and never removes or weakens one, even when asked |
 | Before a fix | `merge-base.sh` merges the latest base branch (a clean merge is committed; conflicts are left for the agent and listed in `.pipeline/conflicts.txt`); it stops early, with what to do, on conflicts in files the agent may not change, binary files or deleted files, and when the base changed workflow files (the workflow token can't push those). `snapshot-config.sh` keeps the branch's `CLAUDE.md` / `.claude/`, which `claude-code-action` swaps for the default branch's copies on pull request events |
 
 Write access is kept away from everything the agent touched:
@@ -127,7 +131,7 @@ checks fail, nothing is pushed and the status says why.
 | Jobs | `review` (matrix of 4 lenses, `fail-fast: false`) → `summarize` |
 | Agent | `/pipeline-review <lens>` · tools `Read, Glob, Grep` · 100 turns · 45-minute job each (adjustable) |
 | Output | [`review-findings.schema.json`](../templates/pipeline/schemas/review-findings.schema.json): lens, verdict, previous (what happened to each finding of the last review), findings (severity, confidence, file, line, title, detail, suggestion) |
-| Context | `.pipeline/diff.patch` and the changed-file list; `.pipeline/pr.md` (the description, including the build agent's follow-ups and anything it says it couldn't verify, and the collaborators' conversation); `.pipeline/issue.md`; `.pipeline/previous-findings.json` (this lens's findings from the last review: `prepare` finds that comment once with `last-review.sh`, so all four lenses check the same one, and `previous-findings.sh` reads them from it) |
+| Context | `.pipeline/diff.patch` and the changed-file list; `.pipeline/pr.md` (the description, including the build agent's tests, follow-ups and anything it says it couldn't verify, and the collaborators' conversation); `.pipeline/issue.md`; `.pipeline/previous-findings.json` (this lens's findings from the last review: `prepare` finds that comment once with `last-review.sh`, so all four lenses check the same one, and `previous-findings.sh` reads them from it) |
 | Effect | a new review comment on the pull request for every review, never an edit of an earlier one; a re-review opens with **Since the last review** (linking to it: fixed, still there, no longer applies); the command's status links to it |
 
 The default branch is checked out at the root and the pinned head commit in `pr/`. The prompts, settings and scripts

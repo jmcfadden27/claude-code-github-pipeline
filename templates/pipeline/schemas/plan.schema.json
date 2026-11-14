@@ -1,7 +1,7 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["summary", "approach", "steps", "files", "acceptanceCriteria", "risks", "questions", "readyToBuild"],
+  "required": ["summary", "approach", "steps", "files", "acceptanceCriteria", "testPlan", "skippedLayers", "risks", "questions", "readyToBuild"],
   "properties": {
     "summary": {
       "type": "string",
@@ -45,6 +45,54 @@
             "type": "string",
             "description": "How it is checked: the test that will cover it, or the command or manual step when a test cannot."
           }
+        }
+      }
+    },
+    "testPlan": {
+      "type": "array",
+      "description": "The tests the change adds or updates, across every test layer it touches (the test layers in the project CLAUDE.md, leaving out rows still marked Example; unit tests when it lists none). Empty only for a change with no behaviour, such as docs only.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "layer", "proves", "criteria", "replaces"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,3}[0-9]+$",
+            "description": "Unique in the plan: the ID of the layer from the Test layers table (its initial when the table has no ID) and a number, for example D1, U2, J1."
+          },
+          "layer": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The test layer, as the project names it, for example Database or Journey (Unit when the project lists no layers)."
+          },
+          "proves": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the test proves: the input or state and the observable outcome."
+          },
+          "criteria": {
+            "type": "array",
+            "description": "The acceptance criteria it covers, by their number in acceptanceCriteria (1 is the first). Empty for a test the project rules require, or one that only replaces an old test.",
+            "items": { "type": "integer", "minimum": 1 }
+          },
+          "replaces": {
+            "type": "string",
+            "description": "An existing test the change makes wrong, which this test replaces or updates. Empty when none."
+          }
+        }
+      }
+    },
+    "skippedLayers": {
+      "type": "array",
+      "description": "Each test layer of the project with no test in testPlan, and why the change does not need one.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["layer", "reason"],
+        "properties": {
+          "layer": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string" }
         }
       }
     },

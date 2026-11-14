@@ -27,6 +27,31 @@ def oneline: gsub("\\s*\n\\s*"; " ");
 "",
 (.acceptanceCriteria | map("\(.criterion | oneline)  \n   _Check:_ \(.check | oneline)") | numbered),
 "",
+"### Tests",
+"",
+# Grouped by layer, in the order the layers first appear.
+(if (.testPlan | length) == 0 then "_None._" else
+  (.testPlan | reduce .[] as $t ([]; if any(.[]; . == $t.layer) then . else . + [$t.layer] end)) as $layers
+  | [$layers[] as $layer
+      | "**\($layer | oneline)**",
+        "",
+        (.testPlan | map(select(.layer == $layer))
+          | map("- **\(.id).** \(.proves | oneline)"
+              + (if (.criteria | length) > 0
+                 then " _(criteri\(if (.criteria | length) == 1 then "on" else "a" end) \(.criteria | map(tostring) | join(", ")))_"
+                 else "" end)
+              + (if (.replaces | test("\\S")) then "  \n  _Replaces:_ \(.replaces | oneline)" else "" end))
+          | join("\n")),
+        ""]
+  | .[:-1] | join("\n")
+end),
+(if (.skippedLayers | length) > 0 then
+  "",
+  "_Layers with no tests:_",
+  "",
+  (.skippedLayers | map("- \(.layer | oneline): \(.reason | oneline)") | join("\n"))
+else empty end),
+"",
 "### Risks",
 "",
 (.risks | bullets),

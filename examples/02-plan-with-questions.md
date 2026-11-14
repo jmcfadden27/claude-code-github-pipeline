@@ -22,6 +22,8 @@ Add a nullable due_date column through a new migration, expose it on the task mo
 - `src/tasks/task.ts` (modify)
 - `src/tasks/task-validator.ts` (modify)
 - `src/tasks/task-routes.ts` (modify)
+- `test/db/migrations.test.ts` (modify)
+- `test/task-validator.test.ts` (modify)
 - `test/tasks.test.ts` (modify)
 
 ### Acceptance criteria
@@ -30,6 +32,27 @@ Add a nullable due_date column through a new migration, expose it on the task mo
    _Check:_ API tests create and update tasks with and without dueDate
 2. GET /tasks lists overdue tasks first  
    _Check:_ An API test lists tasks with past, future and no due dates and checks the order
+
+### Tests
+
+**Database**
+
+- **D1.** After migration 0007, tasks have a nullable due_date and existing tasks keep a null due date _(criterion 1)_
+
+**Unit**
+
+- **U1.** TaskValidator accepts a missing dueDate and an ISO date, and rejects a date that isn't ISO _(criterion 1)_
+
+**API**
+
+- **A1.** POST and PATCH /tasks store and return dueDate, with and without one _(criterion 1)_
+- **A2.** GET /tasks with past, future and no due dates lists overdue tasks first _(criterion 2)_  
+  _Replaces:_ 'GET /tasks lists tasks newest first'
+
+_Layers with no tests:_
+
+- UI: No client code in this change
+- Journey: No user flow changes without client code
 
 ### Risks
 

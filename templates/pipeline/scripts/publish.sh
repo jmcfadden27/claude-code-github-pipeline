@@ -98,7 +98,19 @@ if [[ "$MODE" == "build" ]]; then
   body="$(jq -r --arg issue "$ISSUE_NUMBER" --arg approved "${APPROVED_COMMENT:-}" -f "$here/render-pr-body.jq" <<< "$report")"
   body="${body//@/@${zero_width}}"
   if ! url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base "$BASE_REF" --head "$branch" --title "$title" --body "$body")"; then
-    fail "The branch ${branch} was pushed, but opening the pull request failed (see the run log). Open it from the branch yourself, or delete the branch and comment \`/approve\` again."
+    # A pull request opened by hand needs the same description: later /fix and /review runs find the issue and the
+    # approved plan (with its test list) through its first lines, and its Tests section lists the build's tests.
+    # The description is the agent's text: workflow commands are off while it is printed (resumed with a random token).
+    token="$(od -An -tx1 -N16 /dev/urandom | tr -d ' \n')"
+    echo "::group::Pull request description"
+    echo "::stop-commands::${token}"
+    printf '%s\n' "$body"
+    echo "::${token}::"
+    echo "::endgroup::"
+    lines="\`<!-- ai-pipeline:pr -->\`"
+    if [[ -n "${APPROVED_COMMENT:-}" ]]; then lines+=", \`<!-- ai-pipeline:approved ${APPROVED_COMMENT} -->\`"; fi
+    lines+=" and \`Closes #${ISSUE_NUMBER}\`"
+    fail "The branch ${branch} was pushed, but opening the pull request failed (see the run log). Open it from the branch yourself with the description from the run log (\"Pull request description\"; it starts with ${lines}), or delete the branch and comment \`/approve\` again."
   fi
   pr="${url##*/}"
   if [[ -n "${GITHUB_OUTPUT:-}" ]]; then { echo "pr=${pr}"; echo "sha=${sha}"; echo "url=${url}"; } >> "$GITHUB_OUTPUT"; fi
@@ -106,11 +118,27 @@ if [[ "$MODE" == "build" ]]; then
 else
   if [[ "$committed" == "true" ]]; then
     changes="$(jq -r '.changes | map("- `\(.path)`: \(.what)") | join("\n")' <<< "$report")"
+    # The tests this fix wrote, changed, removed or couldn't write, shown as in the pull request description
+    # (render-pr-body.jq: keep the two in step). The description keeps the build's list.
+    tests="$(jq -r 'def oneline: gsub("\\s*\n\\s*"; " ");
+      def code: ([scan("`+") | length] | max // 0) as $n | ("`" * ($n + 1)) as $f
+        | if $n > 0 then "\($f) \(.) \($f)" else "\($f)\(.)\($f)" end;
+      def test_line:
+        "- " + (if (.id | test("\\S")) then "**\(.id)** " else "" end)
+        + (if .status == "not-written" then "⚠️ not written: \(if (.note | test("\\S")) then .note | oneline else "no reason given" end)"
+           elif (.file | test("\\S") | not) or (.name | test("\\S") | not) then "\(.status): ⚠️ no file or name given"
+           else "\(.status): \(.file | oneline | code): \(.name | oneline | code)" end)
+        + (if .status != "not-written" and (.note | test("\\S")) then " (\(.note | oneline))" else "" end);
+      (.tests // []) | map(test_line) | join("\n")' <<< "$report")"
     body="🔧 **${title}**
 
 ${summary}
 
-${changes}"
+${changes}${tests:+
+
+**Tests**
+
+${tests}}"
   else
     body="🔄 Brought in the latest ${BASE_REF}; nothing else to change: ${summary}"
   fi

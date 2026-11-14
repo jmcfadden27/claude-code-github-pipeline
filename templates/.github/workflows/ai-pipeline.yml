@@ -459,7 +459,7 @@ jobs:
           mkdir -p .pipeline
           git -C pr diff "origin/${BASE_REF}...HEAD" > .pipeline/diff.patch
           git -C pr diff --stat "origin/${BASE_REF}...HEAD" > .pipeline/diff-files.txt
-          # The description (the build agent's summary, checks and follow-ups, including anything it couldn't verify)
+          # The description (the build agent's summary, tests, checks and follow-ups, including anything it couldn't verify)
           # and the collaborators' conversation.
           ./pipeline/scripts/gather-pr-context.sh
           # This lens's findings from the last review (the one prepare read), to check first.
