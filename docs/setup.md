@@ -47,8 +47,8 @@ scripts prepare the input, Claude Code does the stage's work and answers with JS
 ## 2. Copy the files into your repository
 
 ```bash
-git clone https://github.com/jmcfadden27/claude-code-dev-pipeline.git
-claude-code-dev-pipeline/scripts/install.sh /path/to/your-repo
+git clone https://github.com/jmcfadden27/claude-code-github-pipeline.git
+claude-code-github-pipeline/scripts/install.sh /path/to/your-repo
 ```
 
 The installer copies everything under `templates/` into the repository and prints each file:
@@ -313,7 +313,7 @@ descriptions are up to you.
 **Or with the GitHub CLI:**
 
 ```bash
-claude-code-dev-pipeline/scripts/create-labels.sh <owner>/<repo>
+claude-code-github-pipeline/scripts/create-labels.sh <owner>/<repo>
 ```
 
 | Label | Set by the pipeline when |

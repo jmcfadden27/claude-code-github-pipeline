@@ -10,8 +10,8 @@ Issues and pull requests are welcome.
 ## Making a change
 
 ```bash
-git clone https://github.com/jmcfadden27/claude-code-dev-pipeline.git
-cd claude-code-dev-pipeline
+git clone https://github.com/jmcfadden27/claude-code-github-pipeline.git
+cd claude-code-github-pipeline
 tests/run.sh
 ```
 
