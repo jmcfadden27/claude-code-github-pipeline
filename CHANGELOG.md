@@ -49,4 +49,4 @@ First public release.
 - `tests/run.sh` checks the deterministic parts offline: scripts, schemas, renderers, trust rules, merging,
   committing, publishing and the installer.
 
-[0.1.0]: https://github.com/jmcfadden27/claude-code-dev-pipeline/releases/tag/v0.1.0
+[0.1.0]: https://github.com/jmcfadden27/claude-code-github-pipeline/releases/tag/v0.1.0

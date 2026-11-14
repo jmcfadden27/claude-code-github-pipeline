@@ -1,4 +1,4 @@
-# Claude Code Dev Pipeline
+# Claude Code GitHub Pipeline
 
 A reference implementation of an **AI development pipeline on GitHub**: a person describes a change in an issue, and
 [Claude Code](https://code.claude.com) agents plan it, ask questions, build it, test it, open a pull request, review
@@ -164,8 +164,8 @@ CHANGELOG.md · CONTRIBUTING.md · SECURITY.md · LICENSE
 ## Quick start
 
 ```bash
-git clone https://github.com/jmcfadden27/claude-code-dev-pipeline.git
-claude-code-dev-pipeline/scripts/install.sh /path/to/your-repo
+git clone https://github.com/jmcfadden27/claude-code-github-pipeline.git
+claude-code-github-pipeline/scripts/install.sh /path/to/your-repo
 ```
 
 **📘 Follow the [setup guide](docs/setup.md)** for the full step-by-step: configuring your checks and toolchain,
