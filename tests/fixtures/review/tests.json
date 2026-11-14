@@ -25,6 +25,8 @@
   "coverage": {
     "filesChecked": [
       "src/tasks/task-routes.ts",
+      "test/db/migrations.test.ts",
+      "test/task-validator.test.ts",
       "test/tasks.test.ts",
       "src/tasks/task-store.ts"
     ],

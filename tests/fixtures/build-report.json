@@ -6,7 +6,16 @@
     { "path": "src/tasks/task.ts", "what": "dueDate on the model and the request types" },
     { "path": "src/tasks/task-validator.ts", "what": "Validates dueDate as an ISO date" },
     { "path": "src/tasks/task-routes.ts", "what": "New ordering for GET /tasks" },
-    { "path": "test/tasks.test.ts", "what": "9 new tests: create, update, validation, ordering" }
+    { "path": "test/db/migrations.test.ts", "what": "Migration 0007 and the due_date column" },
+    { "path": "test/task-validator.test.ts", "what": "Due date validation" },
+    { "path": "test/tasks.test.ts", "what": "Create, update and ordering with due dates; the old newest-first test now checks the new order" }
+  ],
+  "tests": [
+    { "id": "D1", "status": "written", "file": "test/db/migrations.test.ts", "name": "0007 adds a nullable due_date that keeps existing tasks null", "note": "" },
+    { "id": "U1", "status": "written", "file": "test/task-validator.test.ts", "name": "accepts a missing, future or past ISO dueDate and rejects any other", "note": "" },
+    { "id": "A1", "status": "written", "file": "test/tasks.test.ts", "name": "POST /tasks stores an optional dueDate, including a past one", "note": "" },
+    { "id": "A2", "status": "written", "file": "test/tasks.test.ts", "name": "PATCH /tasks/:id sets a past dueDate, changes it and clears it", "note": "" },
+    { "id": "A3", "status": "updated", "file": "test/tasks.test.ts", "name": "GET /tasks lists open overdue tasks first, then by due date", "note": "Was 'GET /tasks lists tasks newest first'" }
   ],
   "checks": { "ran": true, "passed": true, "notes": "Lint and 58 tests passed on the second run (first run: one ordering test failed, fixed)." },
   "followUps": ["Show due dates in the web client"],

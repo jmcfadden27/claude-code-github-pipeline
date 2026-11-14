@@ -1,12 +1,12 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["status", "summary", "changes", "checks", "followUps", "commit"],
+  "required": ["status", "summary", "changes", "tests", "checks", "followUps", "commit"],
   "properties": {
     "status": {
       "type": "string",
       "enum": ["implemented", "blocked"],
-      "description": "implemented: the approved plan is in the working tree and the checks pass. blocked: you stopped; explain why in summary."
+      "description": "implemented: the approved plan is in the working tree (any listed test you could not write is in tests as not-written) and the checks pass. blocked: you stopped; explain why in summary."
     },
     "summary": {
       "type": "string",
@@ -22,6 +22,38 @@
         "properties": {
           "path": { "type": "string" },
           "what": { "type": "string" }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "description": "One entry per test in the approved test list, by its ID, plus any other test you added or changed (with an empty id). On a fix, only the tests you added, changed, removed or could not write.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "file", "name", "note"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID from the approved test list, for example D1 (for a removed test, the ID of the listed test that replaces it). Empty for a test that is not on the list."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["written", "updated", "removed", "not-written"],
+            "description": "written: a new test. updated: an existing test changed. removed: a test the plan replaces, deleted. not-written: you could not write it; say why in note."
+          },
+          "file": {
+            "type": "string",
+            "description": "The test file, relative to the repository root. Always set, except when not-written."
+          },
+          "name": {
+            "type": "string",
+            "description": "The exact name of the test as it appears in the file. Always set, except when not-written."
+          },
+          "note": {
+            "type": "string",
+            "description": "Why, when not-written; otherwise anything a reviewer should know. Empty when there is nothing."
+          }
         }
       }
     },

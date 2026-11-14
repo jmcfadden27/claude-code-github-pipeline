@@ -215,6 +215,11 @@ loads it automatically in every session, so every pipeline agent follows it, and
 
 - Start from the generated file (or the example in this repository) and replace the examples with real rules.
 - Keep it short and specific; agents read it on every run.
+- Fill in **Test layers**: each kind of test your project has (unit, database, API, UI, journey…), its ID (1–3
+  capital letters, such as `U` or `D`), what it proves, where it lives and when a change needs it, in place of the
+  example rows (rows still marked "Example:" are ignored). Every plan lists the tests a change needs in each layer it
+  touches, the build writes them and the tests reviewer checks each one. List only layers `run-checks.sh` runs; with
+  none listed, the pipeline asks for unit tests.
 - It's written for developers too. Steps an agent can't do in the pipeline (deploying, running the app, using a
   database) are fine to keep: the build agent skips them and lists anything a person should do after merging.
 
@@ -408,7 +413,7 @@ Ordinary comments also start a run (GitHub starts the workflow for every comment
    - **finish** updates the status.
 3. When it finishes:
    - a pull request titled in the commit format, for example `test(dates): cover empty input in the date formatter`;
-   - its description lists the changes, the checks and any follow-ups;
+   - its description lists the changes, the tests, the checks and any follow-ups;
    - the issue's status says **✅ Build done · opened … · AI review: …**.
 4. If the agent couldn't finish, the status says **⚠️ Build failed** with the reason, and nothing was pushed.
 
@@ -436,6 +441,9 @@ When the review (or you) finds something to change, fix it on the same pull requ
 
 1. Comment on the pull request: **`/fix`** alone fixes the AI review's findings; **`/fix` followed by text** does what
    you ask, for example `/fix add a test for the JSON mapping`. Comments you leave on lines of code are included.
+   On a pull request built from an approved plan, the tests on the plan's list stay: the fix writes any the review
+   says are missing and never removes or weakens one, even when you ask. To change the list, re-plan on the issue
+   (`/plan`, then `/approve` opens a new pull request).
 2. The run has the same jobs as a build. The pull request's commit is pinned when your `/fix` is accepted; the fix
    brings the branch up to date with its base (the agent resolves any conflicts), fixes, runs the checks, and the
    workflow checks again. It pushes only if nobody pushed to the branch meanwhile.
@@ -496,7 +504,7 @@ Use this to try changes to a skill's instructions before they reach the pipeline
 | A failed build left an `ai/issue-N-…` branch | Each build pushes a new branch before opening its pull request. Delete leftover branches under **Code → Branches**. |
 | No 👀 on your command | The workflow isn't on the default branch (step 6); Actions are disabled (step 1); the command isn't the comment's first word, or isn't one for that place (`/fix` on an issue); or you lack write access. The run's **prepare** job says which ("Not a pipeline command here" or "does not have write access"). |
 | The plan step fails to set a label | The status labels don't exist yet (step 8). |
-| **GitHub Actions is not permitted to create or approve pull requests** | Tick "Allow GitHub Actions to create and approve pull requests" (step 1). The branch was already pushed: open its pull request from the link in the log and comment `/review`. |
+| **GitHub Actions is not permitted to create or approve pull requests** | Tick "Allow GitHub Actions to create and approve pull requests" (step 1). The branch was already pushed: open its pull request from the link in the log, with the description the run log shows under "Pull request description" (later runs find the approved plan through its first lines), and comment `/review`. |
 | The run fails in the **Plan / Build or fix / Review** (Claude) step with an authentication error | The secret is missing or misnamed (step 7), or the token expired (`claude setup-token` again). Test the token locally with `claude`. |
 | `/approve` fails with **There is no plan on this issue yet** | Comment `/plan` first. |
 | `/approve` fails with **The latest plan isn't ready to build** | The latest plan has open questions or no acceptance criteria. Comment `/plan` with your answers; approve the new plan. |
@@ -520,8 +528,9 @@ Use this to try changes to a skill's instructions before they reach the pipeline
 | **commit header is not in the Conventional Commits format** / **commit title is not a Conventional Commits header** | The agent's commit fields didn't form a valid header. Comment the command again; if it repeats, open an issue on this repository. |
 | You re-ran a failed **publish** job | Works: it pushes to a new branch named with the run attempt. Delete a branch an earlier attempt left behind. |
 | Your CI doesn't run on the pipeline's pull request | Expected (see 10.2). |
-| A build's pull request couldn't be opened after the push | The status names the branch: open a pull request from it yourself, or delete it and `/approve` again. |
+| A build's pull request couldn't be opened after the push | The status names the branch: open a pull request from it yourself with the description the run log shows under "Pull request description" (later runs find the approved plan through its first lines), or delete the branch and `/approve` again. |
 | A review lens failed | The review comment still shows the other lenses. After `/approve` or `/fix` the status says **done, but the review didn't finish** (with the pull request); after `/review` it says **⚠️ Review failed**. Comment `/review` to retry. |
+| The review flags a listed test as missing or **not written** | Each test on the approved plan's list counts until it is in the code. `/fix` to have it written; if it shouldn't be on the list, re-plan on the issue (`/plan`, then `/approve` opens a new pull request), or merge anyway (the review is advisory). |
 | The review shows few or no findings you expected | Findings below 80 confidence are left out (the comment counts them). Lower `PIPELINE_REVIEW_MIN_CONFIDENCE` to see more. |
 
 To read a run's details: **Actions** → the run → the failed job → expand the failed step.
@@ -543,7 +552,8 @@ To read a run's details: **Actions** → the run → the failed job → expand t
 **Updating** to a newer version of this repository: pull it, then compare its `templates/` with your repository.
 
 1. Copy over every file you haven't customised: everything except `pipeline/scripts/run-checks.sh`,
-   `.github/workflows/ai-pipeline.yml` and your `CLAUDE.md`.
+   `.github/workflows/ai-pipeline.yml` and your `CLAUDE.md`. Add any new section of `templates/CLAUDE.md.example` to
+   your `CLAUDE.md`, such as **Test layers** (without it, plans list unit tests only).
 2. `ai-pipeline.yml`: take the new template, paste your toolchain section back into the marked step of the `build`
    job, and re-add `id-token: write` to that job if your toolchain uses OIDC.
 3. `run-checks.sh`: keep your commands, but make its `if [[ "${CI:-}" == "true" ]]` block at the top match the

@@ -11,7 +11,17 @@ Tasks can now have an optional due date. GET /tasks lists open overdue tasks fir
 - `src/tasks/task.ts`: dueDate on the model and the request types
 - `src/tasks/task-validator.ts`: Validates dueDate as an ISO date
 - `src/tasks/task-routes.ts`: New ordering for GET /tasks
-- `test/tasks.test.ts`: 9 new tests: create, update, validation, ordering
+- `test/db/migrations.test.ts`: Migration 0007 and the due_date column
+- `test/task-validator.test.ts`: Due date validation
+- `test/tasks.test.ts`: Create, update and ordering with due dates; the old newest-first test now checks the new order
+
+## Tests
+
+- **D1** written: `test/db/migrations.test.ts`: `0007 adds a nullable due_date that keeps existing tasks null`
+- **U1** written: `test/task-validator.test.ts`: `accepts a missing, future or past ISO dueDate and rejects any other`
+- **A1** written: `test/tasks.test.ts`: `POST /tasks stores an optional dueDate, including a past one`
+- **A2** written: `test/tasks.test.ts`: `PATCH /tasks/:id sets a past dueDate, changes it and clears it`
+- **A3** updated: `test/tasks.test.ts`: `GET /tasks lists open overdue tasks first, then by due date` (Was 'GET /tasks lists tasks newest first')
 
 ## Checks
 

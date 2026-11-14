@@ -23,6 +23,29 @@ agents read it on every run.
 - Example: follow the patterns of the surrounding code; match its naming and comment density.
 - Example: every behaviour change comes with a test.
 
+## Test layers
+
+Every plan lists the tests a change needs in each layer it touches (the build writes them, the review checks each
+one). Replace the example rows with your project's layers, without the "Example:", and delete the rows you don't
+have (or the whole section: then the pipeline asks for unit tests of the changed behaviour). Rows still marked
+"Example:" are ignored. List only layers `./pipeline/scripts/run-checks.sh` runs. Test IDs are the layer's ID (1–3
+capital letters) and a number: U1, D1, …
+
+| Layer | ID | What it proves | Where | Required when the change touches |
+| --- | --- | --- | --- | --- |
+| Example: Unit | U | Each function's or class's outcomes, including errors | `test/unit/` | any logic |
+| Example: Database | D | Each query or stored function's results and constraints, against a throwaway database with every migration | `test/db/` | a migration, query or stored function |
+| Example: API | A | The real API over HTTP: status codes and response bodies | `test/api/` | an endpoint, request or response |
+| Example: UI | S | A real screen or component with its state: loading, error, empty, actions | `test/ui/` | a screen or component |
+| Example: Journey | J | A whole user flow across screens, against a fake of the real API | `test/journeys/` | a user flow |
+
+Optional: rules every user action meets (each gets a test where it applies; rules still marked "Example:" are
+ignored):
+
+1. Example: a write ignores repeat taps while it is in flight.
+2. Example: a failed write keeps the user's input and says what failed.
+3. Example: loading, error (with a retry) and empty states are shown honestly.
+
 ## Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org): `type(scope): summary`, for example

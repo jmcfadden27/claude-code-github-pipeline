@@ -17,6 +17,9 @@ def comment_id: [.url // "" | capture("issuecomment-(?<id>[0-9]+)$").id | tonumb
 
 (if $approved != "" then .comments |= map(select(comment_id as $id | $id != null and $id <= ($approved | tonumber)))
  else . end) |
+# A pinned thread says so on its first line, where no issue or comment text can be: the fix and review skills apply
+# the approved test list only then.
+(if $approved != "" then "_The thread up to the `/approve` this change was built from; later comments are not shown._", "" else empty end),
 "# Issue #\(.number): \(.title)",
 "",
 "## Request (by @\(.author.login))",
@@ -25,7 +28,6 @@ def comment_id: [.url // "" | capture("issuecomment-(?<id>[0-9]+)$").id | tonumb
 "",
 "## Comments (oldest first)",
 "",
-(if $approved != "" then "_The thread up to the `/approve` this change was built from; later comments are not shown._", "" else empty end),
 (if (.comments | length) == 0 then "_(none)_" else
   (.comments[] |
     "### @\(.author.login) · \(.createdAt)",

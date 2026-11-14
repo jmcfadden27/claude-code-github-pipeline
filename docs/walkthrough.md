@@ -9,10 +9,10 @@ the agents' JSON. The same JSON is used as test fixtures, so these examples are 
 | 2 | Plan agent | Reads the issue and the code; returns a plan with two questions | [02-plan-with-questions.md](../examples/02-plan-with-questions.md) |
 | 3 | Pipeline | Posts the plan, sets the status label `ai:needs-answers` | |
 | 4 | Requester | Answers in one comment starting with `/plan` | [03-answers.md](../examples/03-answers.md) |
-| 5 | Plan agent | Re-plans with the answers; no questions left | [04-plan-ready.md](../examples/04-plan-ready.md) |
+| 5 | Plan agent | Re-plans with the answers; no questions left; the test list covers the database, unit and API layers, skips UI and journey (no client yet) and replaces the old ordering test | [04-plan-ready.md](../examples/04-plan-ready.md) |
 | 6 | Pipeline | Posts the plan, sets the status label `ai:plan-ready` | |
 | 7 | Requester | Comments `/approve` | |
-| 8 | Build agent | Implements the plan; one ordering test fails, it fixes it; checks pass | |
+| 8 | Build agent | Implements the plan and writes each test on the list; one ordering test fails, it fixes it; checks pass | |
 | 9 | Pipeline | Runs the checks again and commits; the publish job pushes `ai/issue-12-…` and opens the pull request | [05-pull-request.md](../examples/05-pull-request.md) |
 | 10 | Pipeline | Starts the review stage on the new pull request automatically | |
 | 11 | 4 review agents | Review in parallel; correctness and tests independently find the same time-zone bug | |

@@ -130,6 +130,67 @@ if grep -A2 "What you were asked to fix" <<< "$prctx" | grep -q "compare dates i
 if grep -q "src/tasks/task-routes.ts:42" <<< "$prctx"; then pass "line comments reach the agent"; else fail "line comments reach the agent"; fi
 if grep -q "STATUS-INJECTION" <<< "$prctx"; then fail "status comments are withheld from the fix agent"; else pass "status comments are withheld from the fix agent"; fi
 if grep -A2 "What you were asked to fix" <<< "$prctx" | grep -q "fixed it locally"; then fail "'/fixed …' is not a fix request"; else pass "'/fixed …' is not a fix request"; fi
+# A Unit test listed after the API tests still joins the one Unit group, right after U1.
+grouped="$(jq '.testPlan += [{"id": "U2", "layer": "Unit", "proves": "Late unit test", "criteria": [], "replaces": ""}]' "$fixtures/plan-ready.json" \
+  | jq -r -f "$scripts/render-plan.jq")"
+if [[ "$(grep -c "^\*\*Unit\*\*$" <<< "$grouped")" == "1" && "$(grep -c "^\*\*API\*\*$" <<< "$grouped")" == "1" ]] \
+  && grep -A1 "^- \*\*U1\.\*\* " <<< "$grouped" | grep -q "^- \*\*U2\.\*\* Late unit test$"; then
+  pass "the plan's tests are grouped by layer, whatever their order"
+else
+  fail "the plan's tests are grouped by layer, whatever their order"
+fi
+plan="$(jq -r -f "$scripts/render-plan.jq" "$fixtures/plan-ready.json")"
+if grep -q "^  _Replaces:_ 'GET /tasks lists tasks newest first'" <<< "$plan"; then pass "a test's replaced test is shown"; else fail "a test's replaced test is shown"; fi
+if grep -A3 "_Layers with no tests:_" <<< "$plan" | grep -q "^- UI: No client code"; then pass "skipped layers are shown with the reason"; else fail "skipped layers are shown with the reason"; fi
+if [[ "$(jq -Rsr 'rtrimstr("\n") | split("\n") | last' <<< "$plan")" == '_Comment `/approve` to build this plan._' ]]; then
+  pass "the ready footer stays the plan's last line"
+else
+  fail "the ready footer stays the plan's last line"
+fi
+if jq '.testPlan = [] | .skippedLayers = []' "$fixtures/plan-ready.json" | jq -r -f "$scripts/render-plan.jq" | grep -A2 "^### Tests$" | grep -q "^_None._$"; then
+  pass "a plan with no tests says so"
+else
+  fail "a plan with no tests says so"
+fi
+body="$(jq '(.tests[] | select(.id == "A1")) |= (.status = "not-written" | .file = "" | .name = "" | .note = "No test database\nin this repository")' "$fixtures/build-report.json" \
+  | jq -r --arg issue 12 --arg approved "" -f "$scripts/render-pr-body.jq")"
+if grep -q "^- \*\*A1\*\* ⚠️ not written: No test database in this repository$" <<< "$body"; then
+  pass "a test that wasn't written is flagged with the reason"
+else
+  fail "a test that wasn't written is flagged with the reason"
+fi
+body="$(jq '(.tests[] | select(.id == "A1")) |= (.status = "not-written" | .file = "" | .name = "" | .note = " ")' "$fixtures/build-report.json" \
+  | jq -r --arg issue 12 --arg approved "" -f "$scripts/render-pr-body.jq")"
+if grep -q "^- \*\*A1\*\* ⚠️ not written: no reason given$" <<< "$body"; then
+  pass "a test that wasn't written with no reason says so"
+else
+  fail "a test that wasn't written with no reason says so"
+fi
+body="$(jq '(.tests[] | select(.id == "A1")) |= (.name = "renders <TaskList> with `x` *bold*")' "$fixtures/build-report.json" \
+  | jq -r --arg issue 12 --arg approved "" -f "$scripts/render-pr-body.jq")"
+if grep -qF -- '- **A1** written: `test/tasks.test.ts`: `` renders <TaskList> with `x` *bold* ``' <<< "$body"; then
+  pass "a test's name is shown exactly, even with markdown characters"
+else
+  fail "a test's name is shown exactly, even with markdown characters"
+fi
+body="$(jq '(.tests[] | select(.id == "A1")) |= (.file = "")' "$fixtures/build-report.json" \
+  | jq -r --arg issue 12 --arg approved "" -f "$scripts/render-pr-body.jq")"
+if grep -qF -- '- **A1** written: ⚠️ no file or name given' <<< "$body"; then
+  pass "a written test with no file or name is flagged"
+else
+  fail "a written test with no file or name is flagged"
+fi
+# publish.sh shows a fix's tests with a copy of render-pr-body.jq's test_line: keep the two in step.
+if diff <(sed -n '/^def test_line:/,/^  + (if .status != "not-written"/p' "$scripts/render-pr-body.jq" | sed 's/^ *//') \
+     <(sed -n '/      def test_line:/,/        + (if .status != "not-written"/p' "$scripts/publish.sh" | sed 's/^ *//') > /dev/null \
+  && diff <(grep -A1 '^def code:' "$scripts/render-pr-body.jq" | sed 's/^ *//') <(grep -A1 '      def code:' "$scripts/publish.sh" | sed 's/^ *//') > /dev/null \
+  && diff <(grep -o 'def oneline: [^;]*;' "$scripts/render-pr-body.jq") <(grep -o 'def oneline: [^;]*;' "$scripts/publish.sh") > /dev/null \
+  && grep -q '^def oneline:' "$scripts/render-pr-body.jq" \
+  && grep -q '^def test_line:' "$scripts/render-pr-body.jq"; then
+  pass "the fix comment shows tests the same way as the pull request description"
+else
+  fail "the fix comment shows tests the same way as the pull request description"
+fi
 review="$(jq -s -r --arg sha 3f9c2e1a7b --argjson min 80 --arg previous "" -f "$scripts/render-review.jq" "$fixtures"/review/*.json)"
 if [[ "$(grep -c "Overdue check compares dates" <<< "$review")" == "1" ]]; then
   pass "duplicate findings across lenses are merged"
@@ -146,7 +207,7 @@ if ! grep -q "Due date might be logged" <<< "$review" && grep -q "1 finding(s) b
 else
   fail "findings below 80 confidence are left out and counted"
 fi
-if grep -q "| tests | ✅ approve | 2 | 3 |" <<< "$review" && grep -A2 "Not checked" <<< "$review" | grep -q "large-dataset.json\` (tests): too large"; then
+if grep -q "| tests | ✅ approve | 2 | 5 |" <<< "$review" && grep -A2 "Not checked" <<< "$review" | grep -q "large-dataset.json\` (tests): too large"; then
   pass "each lens's coverage is shown, and what it didn't check is listed"
 else
   fail "each lens's coverage is shown, and what it didn't check is listed"
@@ -266,11 +327,15 @@ if (
 rm -rf "$tmp" "$tmp.out"
 
 echo "Publish"
-# A stand-in gh: `pr create` prints a pull request URL; everything else succeeds quietly.
+# A stand-in gh: `pr create` prints a pull request URL; `pr comment` saves its body next to it; everything else succeeds
+# quietly.
 fakebin="$(mktemp -d)"
 cat > "$fakebin/gh" <<'GH'
 #!/usr/bin/env bash
 if [[ "$1 $2" == "pr create" ]]; then echo "https://github.com/o/r/pull/7"; fi
+if [[ "$1 $2" == "pr comment" ]]; then
+  while [[ $# -gt 0 ]]; do if [[ "$1" == "--body" ]]; then printf '%s' "$2" > "$(dirname "$0")/comment.md"; fi; shift; done
+fi
 GH
 chmod +x "$fakebin/gh"
 # Sets up $1/remote.git (main, feature), a build in $1/work, and a fresh clone in $1/pub for the publish job.
@@ -310,6 +375,26 @@ rm -rf "$tmp"
 tmp="$(mktemp -d)"
 if (
   publish_setup "$tmp"
+  cd "$tmp/work" && git config user.email t@t && git config user.name t && printf 'b\n' > g.txt
+  MODE=build REPORT_JSON="$report_ok" OUT="$tmp/in" ISSUE_NUMBER=12 BASE_REF=main "$scripts/commit-change.sh" > /dev/null
+  mkdir -p "$tmp/pub/rt" "$tmp/nogh"
+  # A gh whose `pr create` fails: the branch is pushed, the pull request isn't opened.
+  printf '#!/usr/bin/env bash\n[[ "$1 $2" != "pr create" ]]\n' > "$tmp/nogh/gh" && chmod +x "$tmp/nogh/gh"
+  ! (cd "$tmp/pub" && env PATH="$tmp/nogh:$PATH" GH_TOKEN=x GITHUB_REPOSITORY=o/r GITHUB_RUN_ID=99 RUNNER_TEMP="$tmp/pub/rt" \
+    PIPELINE_PUSH_URL="$tmp/remote.git" IN="$tmp/in" MODE=build ISSUE_NUMBER=12 BASE_REF=main APPROVED_COMMENT=102 \
+    BASE_SHA="$(git -C "$tmp/seed" rev-parse main)" "$scripts/publish.sh") > "$tmp/log" 2>&1 &&
+    grep -qF 'it starts with `<!-- ai-pipeline:pr -->`, `<!-- ai-pipeline:approved 102 -->` and `Closes #12`)' "$tmp/pub/rt/failure-reason" &&
+    group="$(sed -n '/^::group::Pull request description$/,/^::endgroup::$/p' "$tmp/log")" &&
+    [[ "$(sed -n '3,5p' <<< "$group")" == "$(printf '%s\n' '<!-- ai-pipeline:pr -->' '<!-- ai-pipeline:approved 102 -->' 'Closes #12')" ]] &&
+    grep -q "^## Tests$" <<< "$group" &&
+    # Workflow commands are off while the description is printed, and resumed with the same token after it.
+    token="$(sed -n '2s/^::stop-commands::\([0-9a-f]\{32\}\)$/\1/p' <<< "$group")" && [[ -n "$token" ]] &&
+    [[ "$(tail -n 2 <<< "$group" | head -n 1)" == "::${token}::" ]]
+); then pass "a pull request that couldn't be opened: the run log has its description (workflow commands off) and the status says what it starts with"; else fail "a pull request that couldn't be opened: the run log has its description (workflow commands off) and the status says what it starts with"; fi
+rm -rf "$tmp"
+tmp="$(mktemp -d)"
+if (
+  publish_setup "$tmp"
   cd "$tmp/work" && git config user.email t@t && git config user.name t
   git switch -q --orphan other && printf 'z\n' > z.txt && git add z.txt && git commit -q -m other
   git branch -f pipeline-result HEAD && mkdir -p "$tmp/in" && git bundle create -q "$tmp/in/change.bundle" pipeline-result 2> /dev/null
@@ -341,6 +426,12 @@ if (
   publish "$tmp/pub" IN="$tmp/in" MODE=fix PR_NUMBER=14 HEAD_REF=feature HEAD_SHA="$head_sha" BASE_REF=main > /dev/null
   [[ "$(git -C "$tmp/remote.git" rev-parse feature)" == "$(git -C "$tmp/work" rev-parse HEAD)" ]] && grep -q "^pr=14$" "$tmp/pub/out.txt"
 ); then pass "a fix is pushed to the pull request's branch"; else fail "a fix is pushed to the pull request's branch"; fi
+if grep -A3 "^\*\*Tests\*\*$" "$fakebin/comment.md" 2> /dev/null | grep -q "^- \*\*D1\*\* written: \`test/db/migrations.test.ts\`: "; then
+  pass "a fix's comment lists the tests it wrote"
+else
+  fail "a fix's comment lists the tests it wrote"
+fi
+rm -f "$fakebin/comment.md"
 rm -rf "$tmp"
 tmp="$(mktemp -d)"
 if (
@@ -504,6 +595,25 @@ if grep -q "Allow past dates" <<< "$pinned" && ! grep -q "withheld\|status notic
   pass "a pinned thread stops at the /approve, and says so"
 else
   fail "a pinned thread stops at the /approve, and says so"
+fi
+# The fix and review skills apply the approved test list only when they find this line: keep the three in step.
+line='_The thread up to the `/approve` this change was built from; later comments are not shown._'
+unpinned="$(jq -r --argjson trusted '["jim"]' --arg approved "" -f "$scripts/issue-context.jq" "$fixtures/issue-view.json")"
+# Only the first line counts: the same words in the request (or a comment) don't make a thread pinned.
+spoofed="$(jq --arg l "$line" '.body = $l + "\n\n" + .body' "$fixtures/issue-view.json" \
+  | jq -r --argjson trusted '["jim"]' --arg approved "" -f "$scripts/issue-context.jq")"
+# The skills quote the whole line, exactly as issue-context.jq writes it.
+if [[ "$(head -n 1 <<< "$pinned")" == "$line" ]] && ! grep -qF "$line" <<< "$unpinned" \
+  && grep -qF "$line" <<< "$spoofed" && [[ "$(head -n 1 <<< "$spoofed")" != "$line" ]] \
+  && sed 's/^ *//' "$root/templates/.claude/skills/pipeline-fix/SKILL.md" | grep -qxF "$line" \
+  && sed 's/^ *//' "$root/templates/.claude/skills/pipeline-review/SKILL.md" | grep -qxF "$line" \
+  && grep -qF "the first line of" "$root/templates/.claude/skills/pipeline-fix/SKILL.md" \
+  && grep -qF "the first line of" "$root/templates/.claude/skills/pipeline-review/SKILL.md" \
+  && grep -qF "$line" "$root/templates/.claude/skills/pipeline-fix/SKILL.md" \
+  && grep -qF "$line" "$root/templates/.claude/skills/pipeline-review/SKILL.md"; then
+  pass "only a pinned thread has, as its first line, the line the fix and review skills look for"
+else
+  fail "only a pinned thread has, as its first line, the line the fix and review skills look for"
 fi
 pinned="$(jq '.comments[0].url = null' "$fixtures/issue-view.json" | jq -r --argjson trusted '["jim"]' --arg approved 102 -f "$scripts/issue-context.jq")"
 if ! grep -q "ai-pipeline:plan" <<< "$pinned"; then

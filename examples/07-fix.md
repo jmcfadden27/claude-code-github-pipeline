@@ -24,6 +24,10 @@ _and comments on the pull request:_
 >
 > - `src/tasks/task-routes.ts`: compare against the start of today in UTC
 > - `test/tasks.test.ts`: time-zone test for the overdue ordering
+>
+> **Tests**
+>
+> - written: `test/tasks.test.ts`: `GET /tasks keeps the overdue order with TZ=America/Los_Angeles`
 
 _The review runs again in the same run and posts a new review comment (the first one stays as it was). Each reviewer
 checked its findings from the first review before looking for new ones, so the new comment opens with:_
